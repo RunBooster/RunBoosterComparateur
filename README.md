@@ -1,9 +1,6 @@
-# :earth_americas: GDP dashboard template
+# :earth_americas: Comparateur produits énergétiques
 
-A simple Streamlit app showing the GDP of different countries in the world.
-
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gdp-dashboard-template.streamlit.app/)
-
+Un simple programme pour comparer les différents produits énergétiques du marché
 ### How to run it on your own machine
 
 1. Install the requirements
