@@ -1,151 +1,93 @@
 import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
+import random
+import smtplib
+import numpy as np
+import os
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+produits = "produits.xlsx"  
+df = pd.read_excel(produits, sheet_name="Produits énergétiques", engine="openpyxl")
+
+left, middle =st.columns([1,3], vertical_alignment="bottom")
+left.image("RunBooster(1).png", width=100) 
+middle.subheader("Comparateur des différents produits énergétiques du marché")
+st.divider()
+
+def load_data():
+    df = pd.read_excel("produits.xlsx")  # Remplace par ton fichier
+    df["Marque"] = df["Marque"].astype(str)  # Convertir toutes les valeurs en string
+    return df
+
+df = load_data()
+
+# Liste des marques uniques avec "Aucune" en option
+marques = ["Toutes"] + sorted(df["Marque"].dropna().unique().tolist(), key=str)
+# Sélection multiple des marques
+selection = st.multiselect("Sélectionne des marques à comparer 👇", marques, default=["Toutes"])
+st.write("Choisi 'Toutes' si tu veux toutes les comparer. Sinon, décoche le." )
+st.divider()
+
+st.write("Filtre sur les critères suivants: 👇")
+filtrer_bio = st.checkbox("Produits Bio")
+filtrer_noix = st.checkbox("Sans fruits à coque")
+filtrer_lactose = st.checkbox("Sans lactose")
+filtrer_gluten = st.checkbox("Sans gluten")
+filtrer_dop = st.checkbox("Certification anti-dopage")
+filtrer_sel=st.checkbox("Produits salés")
+filtrer_caf=st.checkbox("Produits caféinés")
+filtrer_nocaf=st.checkbox("Produits sans caféine")
+st.divider()
+filtrer_barre=st.checkbox("Barres seulement")
+filtrer_gel=st.checkbox("Gels seulement")
+filtrer_compote=st.checkbox("Compotes seulement")
+filtrer_boissons=st.checkbox("Boissons seulement")
+
+
+
+# Filtrage par marque
+if "Toutes" not in selection:
+    df = df[df["Marque"].isin(selection) | (df["Marque"] == "Non communiquée")]
+
+# Appliquer les filtres booléens (Bio, Noix, Lactose, Gluten, DOP)
+for critere in ["bio", "dop"]:
+    if locals()[f"filtrer_{critere}"]:  # Vérifier si la checkbox est cochée
+        df = df[df[critere] == 1]  # Garder uniquement les produits où la valeur est 1
+for critere in ["noix", "lactose", "gluten"]:
+    if locals()[f"filtrer_{critere}"]:  # Vérifier si la checkbox est cochée
+        df = df[df[critere] == 0]  # Garder uniquement les produits où la valeur est 0
+
+
+if filtrer_barre:
+    df=df[(df["Ref"].isin(["BA", "BAS"]))]
+if filtrer_boissons:
+    df=df[(df["Ref"].isin(["B", "BS"]))]
+if filtrer_compote:
+    df=df[(df["Ref"].isin(["C", "CS"]))]
+if filtrer_gel:
+    df=df[(df["Ref"].isin(["G"]))]
+if filtrer_sel:
+    df=df[(df["Ref"].isin(["CS", "BAS", "BS"]))]
+if filtrer_nocaf:
+     df = df[df["Caf"] == 0]
+if filtrer_caf:
+     df = df[df["Caf"] > 0]
+
+# Filtre décroissant
+st.divider()
+st.write("Clique sur le nom de la colonne pour ordonner les valeurs dans l'ordre croissant ou décroissant")
+st.write("La colonne 'Prix' correspond au prix en € pour 1 gramme de glucide dans le produit (€/1g de CHO). Plus la valeur est faible, moins ton ravitaillement sera onéreux.")
+st.write("La colonne 'Densité' correspond au grammage de glucide pour 1 gramme de produit  (CHO/1g). Plus la densité est proche de 1, plus le produit est dense en glucide, et donc moins tu embarqueras de poids pour te ravitailler correctement. Sur une course sans assistance, tu pourras ainsi partir le plus léger possible.")
+# Affichage des résultats
+st.write("### Produits trouvés :")
+st.dataframe(
+    df[["Marque", "Nom", "prix", "Masse", "Glucide", "densite", "Prot", "Caf", "Sodium"]]
+    .rename(columns={
+        "prix": "Prix",
+        "Masse": "Poids (g)",
+        "Glucide": "Glucides (g)",
+        "densite": "Densité",
+        "Prot": "Protéines (g)",
+        "Caf": "Caféine (mg)",
+        "Sodium": "Sodium (mg)"
+    })
 )
-
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
-
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
-
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
-
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
-
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
-
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
-
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
-
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
