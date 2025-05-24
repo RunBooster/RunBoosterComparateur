@@ -1,23 +1,26 @@
-name: Keep Alive Streamlit
+name: Réveil comparateur RunBooster
 
 on:
   schedule:
-    - cron: "0 */10 * * *"  # toutes les 10 heures
+    - cron: "0 */10 * * *"
   workflow_dispatch:
 
 jobs:
   keep-alive:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main branch
+      - name: Checkout with PAT
         uses: actions/checkout@v3
         with:
-          ref: main             
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.COMPARATEUR_TOKEN }}
 
-      - name: Make empty commit and push
+      - name: Update timestamp in .keepalive file
         run: |
+          echo "Last ping: $(date -u)" > .keepalive
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git commit --allow-empty -m "Keep alive"
-          git push origin main  
+          git add .keepalive
+          git commit -m "Keep alive ping at $(date -u)"
+          git push origin main
