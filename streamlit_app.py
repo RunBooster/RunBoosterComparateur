@@ -88,6 +88,6 @@ st.dataframe(
         "densite": "Densité",
         "Prot": "Protéines (g)",
         "Caf": "Caféine (mg)",
-        "Sodium": "Sodium (mg)"
+        "Sodium": "Sodium (g)"
     })
 )
