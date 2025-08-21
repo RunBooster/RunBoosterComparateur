@@ -77,7 +77,7 @@ st.divider()
 st.write("Clique sur le nom de la colonne pour ordonner les valeurs dans l'ordre croissant ou décroissant")
 st.write("La colonne 'Prix' correspond au prix en € pour 1 gramme de glucide dans le produit (€/1g de CHO). Plus la valeur est faible, moins ton ravitaillement sera onéreux.")
 st.write("La colonne 'Densité' correspond au grammage de glucide pour 1 gramme de produit  (CHO/1g). Plus la densité est proche de 1, plus le produit est dense en glucide, et donc moins tu embarqueras de poids pour te ravitailler correctement. Sur une course sans assistance, tu pourras ainsi partir le plus léger possible.")
-st.write("Pour la catégorie 'Boisson', la colonne 'Sodium' correspond à la quantité de sodium pour le 'poids' de boisson indiqué (Pour 1g de boisson dans la majorité des cas, ou pour plusieurs grammes pour d'autres cas.")
+st.write("Pour la catégorie 'Boisson', la colonne 'Sodium' correspond à la quantité de sodium pour le 'poids' de boisson indiqué (Pour 1g de boisson dans la majorité des cas, ou pour plusieurs grammes pour d'autres cas).")
 # Affichage des résultats
 st.write("### Produits trouvés :")
 st.dataframe(
